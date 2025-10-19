@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Kraft - Underground Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: none;
+            image-rendering: crisp-edges;
+        }
+
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+        }
+
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(0, 255, 0, 0.9);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.8), 0 0 30px rgba(0, 255, 0, 0.4);
+        }
+
+        #crosshair::before {
+            width: 2px;
+            height: 20px;
+            left: 9px;
+            top: 0;
+        }
+
+        #crosshair::after {
+            width: 20px;
+            height: 2px;
+            left: 0;
+            top: 9px;
+        }
+
+        #inventory {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 8px;
+            border-radius: 4px;
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .inventory-slot {
+            width: 60px;
+            height: 60px;
+            background: rgba(20, 20, 20, 0.9);
+            border: 3px solid rgba(0, 255, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #00ff00;
+            text-align: center;
+            cursor: pointer;
+            pointer-events: all;
+            transition: all 0.2s;
+        }
+
+        .inventory-slot:hover {
+            transform: scale(1.1);
+            border-color: #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+
+        .inventory-slot.active {
+            border-color: #ff0000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+            background: rgba(40, 0, 0, 0.9);
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ff00;
+            font-size: 14px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+            line-height: 1.8;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border: 2px solid rgba(0, 255, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        #startScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: all;
+            overflow: hidden;
+        }
+
+        #startScreen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 0, 0.03) 2px, rgba(0, 255, 0, 0.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0, 255, 0, 0.03) 2px, rgba(0, 255, 0, 0.03) 4px);
+            animation: scanlines 8s linear infinite;
+        }
+
+        @keyframes scanlines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(20px); }
+        }
+
+        #startScreen h1 {
+            font-size: 72px;
+            color: #00ff00;
+            text-shadow: 
+                0 0 10px rgba(0, 255, 0, 0.8),
+                0 0 20px rgba(0, 255, 0, 0.6),
+                0 0 30px rgba(0, 255, 0, 0.4),
+                0 0 40px rgba(0, 255, 0, 0.2);
+            margin-bottom: 20px;
+            font-weight: bold;
+            animation: glitch 3s infinite;
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes glitch {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-2px, 2px); }
+            94% { transform: translate(2px, -2px); }
+            96% { transform: translate(-2px, -2px); }
+            98% { transform: translate(2px, 2px); }
+        }
+
+        #startScreen p {
+            font-size: 18px;
+            color: #00ff00;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.6;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+
+        #startButton {
+            padding: 20px 60px;
+            font-size: 24px;
+            background: #000;
+            color: #00ff00;
+            border: 3px solid #00ff00;
+            border-radius: 0;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.5),
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+            transition: all 0.3s;
+            position: relative;
+            z-index: 1;
+        }
+
+        #startButton:hover {
+            background: #00ff00;
+            color: #000;
+            box-shadow: 
+                0 0 30px rgba(0, 255, 0, 0.8),
+                inset 0 0 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls {
+            margin-top: 30px;
+            color: rgba(0, 255, 0, 0.7);
+            font-size: 14px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .controls div {
+            margin: 5px 0;
+        }
+
+        .controls div strong {
+            color: #00ff00;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+        
+        @keyframes melt {
+            0% {
+                clip-path: polygon(0 0, 100% 0, 100% 0%, 0 0%);
+            }
+            100% {
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            }
+        }
+
+        .melting {
+            animation: melt 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+
+        .fade-out {
+            animation: fadeOut 0.5s ease-out 1.5s forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                visibility: hidden;
+            }
+        }
+        
+        /* Added pause menu styles */
+        #pauseMenu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            pointer-events: all;
+        }
+
+        #pauseMenu.active {
+            display: flex;
+        }
+
+        #pauseMenu h2 {
+            font-size: 48px;
+            color: #00ff00;
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+            margin-bottom: 40px;
+        }
+
+        .menu-section {
+            background: rgba(0, 20, 0, 0.8);
+            border: 2px solid #00ff00;
+            padding: 30px;
+            margin: 10px;
+            border-radius: 8px;
+            min-width: 400px;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+        }
+
+        .menu-section h3 {
+            color: #00ff00;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            color: #00ff00;
+        }
+
+        .setting-row label {
+            font-size: 16px;
+        }
+
+        .slider {
+            width: 200px;
+            height: 6px;
+            background: #001a00;
+            border: 1px solid #00ff00;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #00ff00;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #00ff00;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+
+        .toggle-btn {
+            padding: 10px 30px;
+            background: #000;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn:hover {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .toggle-btn.active {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .resume-btn {
+            margin-top: 30px;
+            padding: 15px 50px;
+            font-size: 20px;
+            background: #000;
+            color: #00ff00;
+            border: 3px solid #00ff00;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        .resume-btn:hover {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .credits {
+            margin-top: 20px;
+            font-size: 12px;
+            color: rgba(0, 255, 0, 0.6);
+            text-align: center;
+        }
+
+        /* Added author credit to start screen */
+        .author-credit {
+            position: absolute;
+            bottom: 30px;
+            font-size: 16px;
+            color: #00ff00;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+            z-index: 1;
+        }
+
+        /* Added hidden YouTube iframe container */
+        #youtubePlayer {
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            pointer-events: none;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Added hidden YouTube iframe for background music -->
+    <div id="youtubePlayer"></div>
+    
+    <div id="ui">
+        <div id="crosshair"></div>
+        
+        <div id="info">
+            <div>DARK KRAFT v2.0 - ENHANCED</div>
+            <div>Position: <span id="position">0, 0, 0</span></div>
+            <div>Blocks: <span id="blockCount">0</span></div>
+            <div>FPS: <span id="fps">60</span></div>
+        </div>
+
+        <div id="inventory">
+            <div class="inventory-slot active" data-block="grass" style="background: linear-gradient(to bottom, #1a4d1a 0%, #2d1810 50%, #1a0f0a 100%);">GRASS</div>
+            <div class="inventory-slot" data-block="dirt" style="background: #2d1810;">DIRT</div>
+            <div class="inventory-slot" data-block="stone" style="background: #404040;">STONE</div>
+            <div class="inventory-slot" data-block="wood" style="background: #3d2817;">WOOD</div>
+            <div class="inventory-slot" data-block="sand" style="background: #4a3a28;">SAND</div>
+            <div class="inventory-slot" data-block="brick" style="background: #4d1a1a;">BRICK</div>
+            <div class="inventory-slot" data-block="glass" style="background: rgba(20, 40, 40, 0.5);">GLASS</div>
+        </div>
+    </div>
+
+    <div id="startScreen">
+        <h1>DARK KRAFT</h1>
+        <p>Welcome To Dark Kraft</p>
+        <button id="startButton">OK</button>
+        <div class="controls">
+            <div><strong>WASD</strong> - Move | <strong>SPACE</strong> - Jump | <strong>SHIFT</strong> - Sprint | <strong>C</strong> - Crouch</div>
+            <div><strong>MOUSE</strong> - Look Around | <strong>LEFT CLICK</strong> - Break Block</div>
+            <div><strong>RIGHT CLICK</strong> - Place Block | <strong>1-7</strong> - Select Block Type</div>
+            <div><strong>ESC</strong> - Pause Menu | <strong>F</strong> - Toggle Fog</div>
+        </div>
+        <!-- Added author credit -->
+        <div class="author-credit">Made By Taylor Christian Newsome</div>
+    </div>
+
+    <!-- Added pause menu -->
+    <div id="pauseMenu">
+        <h2>PAUSED</h2>
+        
+        <div class="menu-section">
+            <h3>AUDIO SETTINGS</h3>
+            <div class="setting-row">
+                <label>Music Volume:</label>
+                <input type="range" class="slider" id="musicVolume" min="0" max="100" value="50">
+                <span id="musicVolumeValue">50%</span>
+            </div>
+            <div class="setting-row">
+                <label>Sound Effects:</label>
+                <button class="toggle-btn active" id="soundToggle">ON</button>
+            </div>
+            <div class="setting-row">
+                <label>Background Music:</label>
+                <button class="toggle-btn active" id="musicToggle">ON</button>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h3>VIDEO SETTINGS</h3>
+            <div class="setting-row">
+                <label>Brightness:</label>
+                <input type="range" class="slider" id="brightness" min="0" max="200" value="100">
+                <span id="brightnessValue">100%</span>
+            </div>
+            <div class="setting-row">
+                <label>Fog Distance:</label>
+                <input type="range" class="slider" id="fogDistance" min="50" max="200" value="100">
+                <span id="fogValue">100</span>
+            </div>
+        </div>
+
+        <button class="resume-btn" id="resumeBtn">RESUME GAME</button>
+        
+        <div class="credits">
+            Dark Kraft v2.0 - ENHANCED | Made By Taylor Christian Newsome<br>
+            Special Thanks: ClumsyLulz & SleepTheGod
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Added YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        // Credits: ClumsyLulz for audio optimization and SleepTheGod for rendering enhancements
+        
+        let youtubePlayer = null;
+        let youtubeReady = false;
+        
+        function onYouTubeIframeAPIReady() {
+            youtubePlayer = new YT.Player('youtubePlayer', {
+                height: '1',
+                width: '1',
+                videoId: 'nL4i9FKuiEA',
+                playerVars: {
+                    autoplay: 1,
+                    controls: 0,
+                    disablekb: 1,
+                    fs: 0,
+                    modestbranding: 1,
+                    playsinline: 1,
+                    rel: 0,
+                    showinfo: 0,
+                    loop: 1,
+                    playlist: 'nL4i9FKuiEA'
+                },
+                events: {
+                    onReady: function(event) {
+                        youtubeReady = true;
+                        event.target.setVolume(50);
+                        event.target.playVideo();
+                    },
+                    onStateChange: function(event) {
+                        if (event.data === YT.PlayerState.ENDED) {
+                            event.target.playVideo();
+                        }
+                    }
+                }
+            });
+        }
+        
+        const AudioSystem = {
+            context: null,
+            musicGain: null,
+            sfxGain: null,
+            musicOscillators: [],
+            musicEnabled: true,
+            sfxEnabled: true,
+            
+            init() {
+                this.context = new (window.AudioContext || window.webkitAudioContext)();
+                this.musicGain = this.context.createGain();
+                this.sfxGain = this.context.createGain();
+                this.musicGain.connect(this.context.destination);
+                this.sfxGain.connect(this.context.destination);
+                this.musicGain.gain.value = 0.5;
+                this.sfxGain.gain.value = 1.0;
+            },
+            
+            startBackgroundMusic() {
+                if (youtubeReady && youtubePlayer && this.musicEnabled) {
+                    try {
+                        youtubePlayer.playVideo();
+                    } catch(e) {
+                        console.log('[v0] YouTube autoplay blocked, user interaction required');
+                    }
+                }
+            },
+            
+            stopBackgroundMusic() {
+                if (youtubeReady && youtubePlayer) {
+                    try {
+                        youtubePlayer.pauseVideo();
+                    } catch(e) {}
+                }
+            },
+            
+            setMusicVolume(value) {
+                if (youtubeReady && youtubePlayer) {
+                    try {
+                        youtubePlayer.setVolume(value * 100);
+                    } catch(e) {}
+                }
+            },
+            
+            toggleMusic(enabled) {
+                this.musicEnabled = enabled;
+                if (enabled) {
+                    this.startBackgroundMusic();
+                } else {
+                    this.stopBackgroundMusic();
+                }
+            },
+            
+            toggleSFX(enabled) {
+                this.sfxEnabled = enabled;
+            },
+            
+            playStep() {
+                if (!this.context || !this.sfxEnabled) return;
+                const osc = this.context.createOscillator();
+                const gain = this.context.createGain();
+                osc.connect(gain);
+                gain.connect(this.sfxGain);
+                osc.frequency.value = 100 + Math.random() * 50;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.1, this.context.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.1);
+                osc.start(this.context.currentTime);
+                osc.stop(this.context.currentTime + 0.1);
+            },
+            
+            playBreak() {
+                if (!this.context || !this.sfxEnabled) return;
+                const osc = this.context.createOscillator();
+                const gain = this.context.createGain();
+                const filter = this.context.createBiquadFilter();
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.sfxGain);
+                osc.frequency.value = 200;
+                osc.type = 'square';
+                filter.type = 'lowpass';
+                filter.frequency.value = 800;
+                gain.gain.setValueAtTime(0.2, this.context.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.2);
+                osc.start(this.context.currentTime);
+                osc.stop(this.context.currentTime + 0.2);
+            },
+            
+            playPlace() {
+                if (!this.context || !this.sfxEnabled) return;
+                const osc = this.context.createOscillator();
+                const gain = this.context.createGain();
+                osc.connect(gain);
+                gain.connect(this.sfxGain);
+                osc.frequency.value = 400;
+                osc.type = 'square';
+                gain.gain.setValueAtTime(0.15, this.context.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.15);
+                osc.start(this.context.currentTime);
+                osc.stop(this.context.currentTime + 0.15);
+            },
+            
+            playJump() {
+                if (!this.context || !this.sfxEnabled) return;
+                const osc = this.context.createOscillator();
+                const gain = this.context.createGain();
+                osc.connect(gain);
+                gain.connect(this.sfxGain);
+                osc.frequency.setValueAtTime(200, this.context.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, this.context.currentTime + 0.1);
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.2, this.context.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.2);
+                osc.start(this.context.currentTime);
+                osc.stop(this.context.currentTime + 0.2);
+            },
+            
+            playAmbient() {
+                if (!this.context || !this.sfxEnabled) return;
+                const osc = this.context.createOscillator();
+                const gain = this.context.createGain();
+                const filter = this.context.createBiquadFilter();
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.sfxGain);
+                osc.frequency.value = 50 + Math.random() * 30;
+                osc.type = 'sine';
+                filter.type = 'lowpass';
+                filter.frequency.value = 200;
+                gain.gain.setValueAtTime(0.02, this.context.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 2);
+                osc.start(this.context.currentTime);
+                osc.stop(this.context.currentTime + 2);
+            }
+        };
+
+        let scene, camera, renderer, raycaster;
+        let world = {};
+        let geometryCache = {};
+        let materialCache = {};
+        let player = {
+            velocity: new THREE.Vector3(),
+            canJump: false,
+            speed: 0.12,
+            jumpHeight: 0.18,
+            height: 1.7,
+            crouchHeight: 1.2,
+            yaw: 0,
+            pitch: 0,
+            stepTimer: 0,
+            isCrouching: false,
+            isRunning: false
+        };
+        let keys = {};
+        let mouse = { x: 0, y: 0 };
+        let selectedBlock = 'grass';
+        let isPointerLocked = false;
+        let blockCount = 0;
+        let isPaused = false;
+        let fpsCounter = 0;
+        let lastTime = performance.now();
+
+        const blockTypes = {
+            grass: { 
+                top: 0x1a5c1a, 
+                side: 0x0d3d0d, 
+                bottom: 0x2d1810,
+                emissive: 0x001100,
+                emissiveIntensity: 0.1
+            },
+            dirt: { 
+                color: 0x3d2817,
+                emissive: 0x1a0f0a,
+                emissiveIntensity: 0.05
+            },
+            stone: { 
+                color: 0x4a4a4a,
+                emissive: 0x0a0a0a,
+                emissiveIntensity: 0.02
+            },
+            wood: { 
+                color: 0x4d3520,
+                emissive: 0x1a0f0a,
+                emissiveIntensity: 0.08
+            },
+            sand: { 
+                color: 0x5a4a38,
+                emissive: 0x2a1a08,
+                emissiveIntensity: 0.06
+            },
+            brick: { 
+                color: 0x6d2020,
+                emissive: 0x3d0000,
+                emissiveIntensity: 0.15
+            },
+            glass: { 
+                color: 0x1a3a3a, 
+                transparent: true, 
+                opacity: 0.4,
+                emissive: 0x00ffff,
+                emissiveIntensity: 0.2
+            }
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.fog = new THREE.Fog(0x000000, 0, 120);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 20, 0);
+
+            const canvas = document.getElementById('gameCanvas');
+            renderer = new THREE.WebGLRenderer({ 
+                canvas, 
+                antialias: false,
+                powerPreference: 'high-performance',
+                stencil: false,
+                depth: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+
+            raycaster = new THREE.Raycaster();
+            raycaster.far = 10;
+
+            // Enhanced lighting system
+            const ambientLight = new THREE.AmbientLight(0x1a1a2e, 0.3);
+            scene.add(ambientLight);
+
+            const moonLight = new THREE.DirectionalLight(0x4a5a8a, 0.5);
+            moonLight.position.set(50, 100, 50);
+            moonLight.castShadow = true;
+            moonLight.shadow.mapSize.width = 2048;
+            moonLight.shadow.mapSize.height = 2048;
+            moonLight.shadow.camera.left = -80;
+            moonLight.shadow.camera.right = 80;
+            moonLight.shadow.camera.top = 80;
+            moonLight.shadow.camera.bottom = -80;
+            moonLight.shadow.camera.far = 200;
+            scene.add(moonLight);
+
+            // Green accent lighting for darkweb theme
+            const accentLight1 = new THREE.PointLight(0x00ff00, 0.4, 60);
+            accentLight1.position.set(20, 25, 20);
+            scene.add(accentLight1);
+
+            const accentLight2 = new THREE.PointLight(0x00ff00, 0.4, 60);
+            accentLight2.position.set(-20, 25, -20);
+            scene.add(accentLight2);
+
+            const redAccent = new THREE.PointLight(0xff0000, 0.3, 50);
+            redAccent.position.set(0, 30, 0);
+            scene.add(redAccent);
+
+            geometryCache.box = new THREE.BoxGeometry(1, 1, 1);
+            
+            generateTerrain();
+            
+            AudioSystem.init();
+            
+            setInterval(() => {
+                if (isPointerLocked && !isPaused) {
+                    AudioSystem.playAmbient();
+                }
+            }, 4000 + Math.random() * 4000);
+
+            document.addEventListener('keydown', (e) => {
+                keys[e.key.toLowerCase()] = true;
+                
+                if (e.key.toLowerCase() === 'f' && !isPaused) {
+                    scene.fog.far = scene.fog.far === 120 ? 200 : 120;
+                }
+            });
+            document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+            document.addEventListener('mousedown', onMouseClick);
+            document.addEventListener('mousemove', onMouseMove);
+            
+            document.querySelectorAll('.inventory-slot').forEach(slot => {
+                slot.addEventListener('click', () => {
+                    document.querySelectorAll('.inventory-slot').forEach(s => s.classList.remove('active'));
+                    slot.classList.add('active');
+                    selectedBlock = slot.dataset.block;
+                });
+            });
+
+            for (let i = 1; i <= 7; i++) {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === i.toString() && !isPaused) {
+                        const slots = document.querySelectorAll('.inventory-slot');
+                        slots.forEach(s => s.classList.remove('active'));
+                        slots[i - 1].classList.add('active');
+                        selectedBlock = slots[i - 1].dataset.block;
+                    }
+                });
+            }
+
+            canvas.addEventListener('click', () => {
+                if (!isPointerLocked && !isPaused) {
+                    canvas.requestPointerLock();
+                }
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                isPointerLocked = document.pointerLockElement === canvas;
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    togglePause();
+                }
+            });
+
+            document.getElementById('startButton').addEventListener('click', () => {
+                const startScreen = document.getElementById('startScreen');
+                startScreen.classList.add('melting', 'fade-out');
+                AudioSystem.init();
+                AudioSystem.startBackgroundMusic();
+                setTimeout(() => {
+                    startScreen.style.display = 'none';
+                    canvas.requestPointerLock();
+                }, 2000);
+            });
+
+            setupPauseMenu();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            animate();
+        }
+
+        function setupPauseMenu() {
+            const pauseMenu = document.getElementById('pauseMenu');
+            const resumeBtn = document.getElementById('resumeBtn');
+            const musicVolume = document.getElementById('musicVolume');
+            const musicVolumeValue = document.getElementById('musicVolumeValue');
+            const brightness = document.getElementById('brightness');
+            const brightnessValue = document.getElementById('brightnessValue');
+            const fogDistance = document.getElementById('fogDistance');
+            const fogValue = document.getElementById('fogValue');
+            const soundToggle = document.getElementById('soundToggle');
+            const musicToggle = document.getElementById('musicToggle');
+
+            resumeBtn.addEventListener('click', () => {
+                togglePause();
+            });
+
+            musicVolume.addEventListener('input', (e) => {
+                const value = e.target.value / 100;
+                musicVolumeValue.textContent = e.target.value + '%';
+                AudioSystem.setMusicVolume(value);
+            });
+
+            brightness.addEventListener('input', (e) => {
+                const value = e.target.value;
+                brightnessValue.textContent = value + '%';
+                renderer.toneMappingExposure = value / 100;
+            });
+
+            fogDistance.addEventListener('input', (e) => {
+                const value = e.target.value;
+                fogValue.textContent = value;
+                scene.fog.far = parseInt(value);
+            });
+
+            soundToggle.addEventListener('click', () => {
+                const enabled = !soundToggle.classList.contains('active');
+                soundToggle.classList.toggle('active');
+                soundToggle.textContent = enabled ? 'ON' : 'OFF';
+                AudioSystem.toggleSFX(enabled);
+            });
+
+            musicToggle.addEventListener('click', () => {
+                const enabled = !musicToggle.classList.contains('active');
+                musicToggle.classList.toggle('active');
+                musicToggle.textContent = enabled ? 'ON' : 'OFF';
+                AudioSystem.toggleMusic(enabled);
+            });
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const pauseMenu = document.getElementById('pauseMenu');
+            
+            if (isPaused) {
+                pauseMenu.classList.add('active');
+                document.exitPointerLock();
+            } else {
+                pauseMenu.classList.remove('active');
+                document.getElementById('gameCanvas').requestPointerLock();
+            }
+        }
+
+        function generateTerrain() {
+            const size = 25;
+            const height = 12;
+
+            for (let x = -size; x < size; x++) {
+                for (let z = -size; z < size; z++) {
+                    const h = Math.floor(
+                        Math.sin(x * 0.1) * 3 + 
+                        Math.cos(z * 0.1) * 3 + 
+                        Math.sin(x * 0.05) * Math.cos(z * 0.05) * 2 +
+                        height
+                    );
+                    
+                    for (let y = 0; y < h; y++) {
+                        let blockType = 'stone';
+                        if (y === h - 1) blockType = 'grass';
+                        else if (y > h - 4) blockType = 'dirt';
+                        else if (Math.random() < 0.1) blockType = 'brick';
+                        
+                        addBlock(x, y, z, blockType);
+                    }
+                    
+                    if (Math.random() < 0.02) {
+                        addBlock(x, h, z, 'wood');
+                        addBlock(x, h + 1, z, 'wood');
+                    }
+                }
+            }
+        }
+
+        function getMaterial(type, face = null) {
+            const cacheKey = `${type}_${face || 'default'}`;
+            if (materialCache[cacheKey]) {
+                return materialCache[cacheKey];
+            }
+            
+            const blockDef = blockTypes[type];
+            let material;
+            
+            if (blockDef.top && face) {
+                let color = blockDef.side;
+                if (face === 'top') color = blockDef.top;
+                if (face === 'bottom') color = blockDef.bottom;
+                
+                material = new THREE.MeshStandardMaterial({ 
+                    color: color,
+                    emissive: blockDef.emissive,
+                    emissiveIntensity: blockDef.emissiveIntensity,
+                    roughness: 0.9,
+                    metalness: 0.1
+                });
+            } else {
+                material = new THREE.MeshStandardMaterial({ 
+                    color: blockDef.color,
+                    transparent: blockDef.transparent || false,
+                    opacity: blockDef.opacity || 1,
+                    emissive: blockDef.emissive || 0x000000,
+                    emissiveIntensity: blockDef.emissiveIntensity || 0,
+                    roughness: blockDef.transparent ? 0.1 : 0.9,
+                    metalness: blockDef.transparent ? 0.5 : 0.1
+                });
+            }
+            
+            materialCache[cacheKey] = material;
+            return material;
+        }
+
+        function createBlockMesh(type) {
+            const blockDef = blockTypes[type];
+            
+            let materials;
+            if (blockDef.top) {
+                materials = [
+                    getMaterial(type, 'side'),
+                    getMaterial(type, 'side'),
+                    getMaterial(type, 'top'),
+                    getMaterial(type, 'bottom'),
+                    getMaterial(type, 'side'),
+                    getMaterial(type, 'side')
+                ];
+            } else {
+                materials = getMaterial(type);
+            }
+            
+            const mesh = new THREE.Mesh(geometryCache.box, materials);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.matrixAutoUpdate = false;
+            return mesh;
+        }
+
+        function addBlock(x, y, z, type) {
+            const key = `${x},${y},${z}`;
+            if (world[key]) return;
+
+            const mesh = createBlockMesh(type);
+            mesh.position.set(x, y, z);
+            mesh.updateMatrix();
+            mesh.userData = { type, x, y, z };
+            scene.add(mesh);
+            world[key] = mesh;
+            blockCount++;
+        }
+
+        function removeBlock(x, y, z) {
+            const key = `${x},${y},${z}`;
+            const block = world[key];
+            if (block) {
+                scene.remove(block);
+                block.geometry.dispose();
+                if (Array.isArray(block.material)) {
+                    block.material.forEach(m => m.dispose());
+                } else {
+                    block.material.dispose();
+                }
+                delete world[key];
+                blockCount--;
+                updateUI();
+                AudioSystem.playBreak();
+            }
+        }
+
+        function onMouseClick(event) {
+            if (!isPointerLocked || isPaused) return;
+
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            raycaster.set(camera.position, direction);
+
+            const intersects = raycaster.intersectObjects(Object.values(world));
+
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                const block = intersect.object;
+
+                if (event.button === 0) {
+                    removeBlock(block.userData.x, block.userData.y, block.userData.z);
+                } else if (event.button === 2) {
+                    event.preventDefault();
+                    const normal = intersect.face.normal;
+                    const newPos = {
+                        x: Math.floor(block.position.x + normal.x),
+                        y: Math.floor(block.position.y + normal.y),
+                        z: Math.floor(block.position.z + normal.z)
+                    };
+
+                    const playerPos = camera.position;
+                    const distance = Math.sqrt(
+                        Math.pow(newPos.x - playerPos.x, 2) +
+                        Math.pow(newPos.y - playerPos.y, 2) +
+                        Math.pow(newPos.z - playerPos.z, 2)
+                    );
+
+                    if (distance > 1.5) {
+                        addBlock(newPos.x, newPos.y, newPos.z, selectedBlock);
+                        AudioSystem.playPlace();
+                    }
+                }
+            }
+        }
+
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        function onMouseMove(event) {
+            if (!isPointerLocked || isPaused) return;
+
+            const movementX = event.movementX || 0;
+            const movementY = event.movementY || 0;
+
+            const sensitivity = 0.002;
+            player.yaw -= movementX * sensitivity;
+            player.pitch -= movementY * sensitivity;
+
+            player.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, player.pitch));
+
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = player.yaw;
+            camera.rotation.x = player.pitch;
+        }
+
+        function updatePlayer() {
+            if (!isPointerLocked || isPaused) return;
+
+            const targetHeight = keys['c'] ? player.crouchHeight : player.height;
+            
+            if (keys['c'] && !player.isCrouching) {
+                player.isCrouching = true;
+            } else if (!keys['c'] && player.isCrouching) {
+                player.isCrouching = false;
+            }
+
+            player.velocity.y -= 0.012;
+
+            const direction = new THREE.Vector3();
+            let baseSpeed = player.isCrouching ? player.speed * 0.5 : player.speed;
+            const speed = keys['shift'] && !player.isCrouching ? baseSpeed * 2.2 : baseSpeed;
+            let isMoving = false;
+
+            if (keys['w']) {
+                direction.z -= speed;
+                isMoving = true;
+            }
+            if (keys['s']) {
+                direction.z += speed;
+                isMoving = true;
+            }
+            if (keys['a']) {
+                direction.x -= speed;
+                isMoving = true;
+            }
+            if (keys['d']) {
+                direction.x += speed;
+                isMoving = true;
+            }
+
+            if (isMoving && player.canJump) {
+                player.stepTimer += speed;
+                const stepInterval = player.isCrouching ? 0.8 : (keys['shift'] ? 0.3 : 0.5);
+                if (player.stepTimer > stepInterval) {
+                    AudioSystem.playStep();
+                    player.stepTimer = 0;
+                }
+            }
+
+            direction.applyEuler(new THREE.Euler(0, player.yaw, 0));
+            camera.position.add(direction);
+
+            if (keys[' '] && player.canJump && !player.isCrouching) {
+                player.velocity.y = player.jumpHeight;
+                player.canJump = false;
+                AudioSystem.playJump();
+            }
+
+            camera.position.y += player.velocity.y;
+
+            const groundY = getGroundHeight(camera.position.x, camera.position.z);
+            if (camera.position.y < groundY + targetHeight) {
+                camera.position.y = groundY + targetHeight;
+                player.velocity.y = 0;
+                player.canJump = true;
+            }
+
+            if (camera.position.y < 0) {
+                camera.position.y = 25;
+            }
+        }
+
+        function getGroundHeight(x, z) {
+            const blockX = Math.floor(x);
+            const blockZ = Math.floor(z);
+
+            for (let y = 50; y >= 0; y--) {
+                const key = `${blockX},${y},${blockZ}`;
+                if (world[key]) {
+                    return y + 1;
+                }
+            }
+            return 0;
+        }
+
+        function updateUI() {
+            const pos = camera.position;
+            document.getElementById('position').textContent = 
+                `${Math.floor(pos.x)}, ${Math.floor(pos.y)}, ${Math.floor(pos.z)}`;
+            document.getElementById('blockCount').textContent = blockCount;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const currentTime = performance.now();
+            fpsCounter++;
+            if (currentTime >= lastTime + 1000) {
+                document.getElementById('fps').textContent = fpsCounter;
+                fpsCounter = 0;
+                lastTime = currentTime;
+            }
+            
+            updatePlayer();
+            renderer.render(scene, camera);
+        }
+
+        // Start the game - Special thanks to ClumsyLulz and SleepTheGod
+        init();
+        
+        console.log('%c🎮 DARK KRAFT v2.0 ENHANCED', 'color: #00ff00; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #00ff00;');
+        console.log('%cMade by Taylor Christian Newsome', 'color: #00ff00; font-size: 16px;');
+        console.log('%cSpecial Thanks: ClumsyLulz & SleepTheGod', 'color: #00ff00; font-size: 14px;');
+        console.log('%cFor vxunderground & Microsoft Gaming Community', 'color: #00ff00; font-size: 12px;');
+        console.log('%c⚡ Enhanced Graphics | Better Physics | Atmospheric Audio', 'color: #00ff00; font-size: 12px;');
+    </script>
+</body>
+</html>
